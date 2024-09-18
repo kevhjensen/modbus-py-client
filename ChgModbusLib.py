@@ -59,14 +59,18 @@ class pyZerovaChgrModbus:
         self.curConfig = []
         pass
     
-    def connect(self, ipAddr, password) -> None:
+    def connect(self, ipAddr, password) -> tuple:
         """
         Connects to charger with given IP over port 502. Unlocks charger with password (hashed and encoded)
         """
-        self.client = ModbusTcpClient(ipAddr)
-        self.client.connect()
-        self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=self.passwordHashAndModbusEncode(password))
-        #self.curConfig = self.readConfig()
+        try:
+            self.client = ModbusTcpClient(ipAddr)
+            self.client.connect()
+            self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=self.passwordHashAndModbusEncode(password))
+            #self.curConfig = self.readConfig()
+            return 1, "connection success"
+        except Exception as e:
+            return 0,str(e)
 
     def readInfo(self) -> dict:
         """
@@ -78,8 +82,7 @@ class pyZerovaChgrModbus:
         data = self.client.read_holding_registers(address=EVSE_REG_ADDR_SN, count=32)
         serialNumber = self.u16ToByte(data.registers).decode('ascii').rstrip('\x00')
 
-        return {"modelName": modelName, 
-                "serialNumber": serialNumber}
+        return modelName, serialNumber
     
 
     def readConfig(self) -> list:
@@ -143,9 +146,9 @@ class pyZerovaChgrModbus:
 
         return modbusRegisters
 
-test = pyZerovaChgrModbus()
-test.connect('192.168.10.155', 'hi')
-print(test.readInfo())
-test.readConfig()
-test.writeConfig([1, 0, 0, 0, 0])
-print(test.curConfig)
+# test = pyZerovaChgrModbus()
+# test.connect('192.168.10.155', 'hi')
+# print(test.readInfo())
+# test.readConfig()
+# test.writeConfig([1, 0, 0, 0, 0])
+# print(test.curConfig)
