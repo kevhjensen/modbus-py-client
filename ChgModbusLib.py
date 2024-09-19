@@ -146,9 +146,125 @@ class pyZerovaChgrModbus:
 
         return modbusRegisters
 
+    def BTN_reboot(self):
+        try:
+            response = self.client.write_coil(address=EVSE_COIL_ADDR_REBOOT, value=1)
+            if response.isError():
+                return 0, "Error sending reboot request"
+            return 1, "Reboot request sent successfully"
+        except Exception as e:
+            return 0, str(e)
+    def BTN_start_charging(self,connectorID = 1):
+        """
+        Send command to start charging for the given connector.
+        :param connector_index: The index of the connector (e.g., 1 for Connector 1)
+        """
+        try:
+            # Calculate the start charging coil address based on connector index
+            coil_address = (connectorID * 1000) + CONNECTOR_COIL_ADDR_START
+            response = self.client.write_coil(coil_address, True)  # Write '1' to start charging
+            if response.isError():
+                return 0, "Error sending start charging request"
+            return 1, f"Start charging request sent to connector {connectorID}"
+        except Exception as e:
+            return 0, str(e)
+    
+    def BTN_stop_charging(self,connectorID = 1):
+        """
+        Send command to stop charging for the given connector.
+        :param connector_index: The index of the connector (e.g., 1 for Connector 1)
+        """
+        try:
+            # Calculate the stop charging coil address based on connector index
+            coil_address = (connectorID * 1000) + CONNECTOR_COIL_ADDR_STOP
+            response = self.client.write_coil(coil_address, True)  # Write '1' to stop charging
+            if response.isError():
+                return 0, "Error sending stop charging request"
+            return 1, f"Stop charging request sent to connector {connectorID}"
+        except Exception as e:
+            return 0, str(e)
+    def get_connector_info(self,connectorID):
+        """
+        Fetches the present connector info including:
+        - System state
+        - Plug status
+        - State of charge (SOC)
+        - Present power
+        - Present voltages (DC, AC L1, AC L2, AC L3)
+        - Present currents (DC, AC L1, AC L2, AC L3)
+        - Charged energy
+        - Charged duration
+        - Remaining time
+        - Session ID tag
+        - Connector status code
+        """
+        try:
+            # Calculate the base address for this connector
+            base_address = connectorID * 1000
+
+            # Read 50 registers starting from base address
+            result = self.client.read_holding_registers(base_address + CONNECTOR_REG_ADDR_SYSTEM_STATE, 51)
+
+            if result.isError():
+                return 0, "Error reading connector-info registers"
+
+            connector_info = result.registers
+
+            # Extract values from the read data
+            # Extract values from the read data
+            system_state = connector_info[CONNECTOR_REG_ADDR_SYSTEM_STATE]
+            plug_status = connector_info[CONNECTOR_REG_ADDR_PLUG_STATUS]
+            soc = connector_info[CONNECTOR_REG_ADDR_PRESENT_SOC]
+            present_power = connector_info[CONNECTOR_REG_ADDR_PRESENT_POWER]
+            present_voltage_dc = connector_info[CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_DC]
+            present_voltage_ac_l1 = connector_info[CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_AC_L1]
+            present_voltage_ac_l2 = connector_info[CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_AC_L2]
+            present_voltage_ac_l3 = connector_info[CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_AC_L3]
+            present_current_dc = connector_info[CONNECTOR_REG_ADDR_PRESENT_CURRENT_DC]
+            present_current_ac_l1 = connector_info[CONNECTOR_REG_ADDR_PRESENT_CURRENT_AC_L1]
+            present_current_ac_l2 = connector_info[CONNECTOR_REG_ADDR_PRESENT_CURRENT_AC_L2]
+            present_current_ac_l3 = connector_info[CONNECTOR_REG_ADDR_PRESENT_CURRENT_AC_L3]
+            charged_energy = connector_info[CONNECTOR_REG_ADDR_CHARGED_ENERGY]
+            charged_duration = (connector_info[CONNECTOR_REG_ADDR_CHARGED_DURATION + 1] << 16) | connector_info[CONNECTOR_REG_ADDR_CHARGED_DURATION]
+            remaining_time = (connector_info[CONNECTOR_REG_ADDR_PRESENT_REMAIN_TIME + 1] << 16) | connector_info[CONNECTOR_REG_ADDR_PRESENT_REMAIN_TIME]
+            session_idtag = connector_info[CONNECTOR_REG_ADDR_PRESENT_IDTAG]
+            status_code = connector_info[CONNECTOR_REG_ADDR_STATUS_CODE]
+
+            # Return a list with all the values
+            return [
+                {"System State": system_state},
+                {"Plug Status": plug_status},
+                {"SOC": soc},
+                {"Present Power": present_power},
+                {"Present Voltage DC": present_voltage_dc},
+                {"Present Voltage AC L1": present_voltage_ac_l1},
+                {"Present Voltage AC L2": present_voltage_ac_l2},
+                {"Present Voltage AC L3": present_voltage_ac_l3},
+                {"Present Current DC": present_current_dc},
+                {"Present Current AC L1": present_current_ac_l1},
+                {"Present Current AC L2": present_current_ac_l2},
+                {"Present Current AC L3": present_current_ac_l3},
+                {"Charged Energy": charged_energy},
+                {"Charged Duration": charged_duration},
+                {"Remaining Time": remaining_time},
+                {"Session ID Tag": session_idtag},
+                {"Connector Status Code": status_code}
+            ]
+
+        except Exception as e:
+            return 0, str(e)
 # test = pyZerovaChgrModbus()
 # test.connect('192.168.10.155', 'hi')
 # print(test.readInfo())
 # test.readConfig()
 # test.writeConfig([1, 0, 0, 0, 0])
 # print(test.curConfig)
+
+# msg = test.BTN_start_charging()
+# print(msg)
+# msg = test.BTN_stop_charging()
+# print(msg)
+# msg = test.get_connector_info(1)
+# print(msg)
+# msg = test.BTN_reboot()
+# print(msg)
