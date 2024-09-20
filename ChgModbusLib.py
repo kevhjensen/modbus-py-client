@@ -1,6 +1,8 @@
 import pandas as pd
 from hashlib import sha256
 from pymodbus.client import ModbusTcpClient
+import struct
+from constants import *
 
 isConnected = False
 isTLS = False
@@ -12,46 +14,7 @@ TLS_Key = ""
 TLS_Ca = ""
 
 
-EVSE_COIL_ADDR_SAVE_CONFIG = 0
-EVSE_COIL_ADDR_REBOOT = 1
 
-CONNECTOR_COIL_ADDR_START = 0
-CONNECTOR_COIL_ADDR_STOP = 1
-
-EVSE_REG_ADDR_MODEL_NAME = 0
-EVSE_REG_ADDR_SN = 32
-EVSE_REG_ADDR_LOGIN_PASSWORD = 64
-EVSE_REG_ADDR_AC_INPUT_VOLTAGE_L1 = 96
-EVSE_REG_ADDR_AC_INPUT_VOLTAGE_L2 = 98
-EVSE_REG_ADDR_AC_INPUT_VOLTAGE_L3 = 100
-EVSE_REG_ADDR_DC_PUT_VOLTAGE = 102
-EVSE_REG_ADDR_AUTH_MODE = 564
-EVSE_REG_ADDR_AUTH_EVCCID = 565
-EVSE_REG_ADDR_MAX_ENERGY = 566
-EVSE_REG_ADDR_MAX_POWER = 567
-EVSE_REG_ADDR_MAX_CURRENT = 568
-EVSE_REG_ADDR_MAX_DURATION = 569
-EVSE_REG_ADDR_RFID_ENDIAN = 570
-EVSE_REG_ADDR_15118_ENABLE = 571
-EVSE_REG_ADDR_15118_PNC = 572
-
-CONNECTOR_REG_ADDR_SYSTEM_STATE = 0
-CONNECTOR_REG_ADDR_PLUG_STATUS = 1
-CONNECTOR_REG_ADDR_PRESENT_SOC = 2
-CONNECTOR_REG_ADDR_PRESENT_POWER = 3
-CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_DC = 5
-CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_AC_L1 = 7
-CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_AC_L2 = 9
-CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_AC_L3 = 11
-CONNECTOR_REG_ADDR_PRESENT_CURRENT_DC = 13
-CONNECTOR_REG_ADDR_PRESENT_CURRENT_AC_L1 = 15
-CONNECTOR_REG_ADDR_PRESENT_CURRENT_AC_L2 = 17
-CONNECTOR_REG_ADDR_PRESENT_CURRENT_AC_L3 = 19
-CONNECTOR_REG_ADDR_CHARGED_ENERGY = 21
-CONNECTOR_REG_ADDR_CHARGED_DURATION = 25
-CONNECTOR_REG_ADDR_PRESENT_REMAIN_TIME = 27
-CONNECTOR_REG_ADDR_PRESENT_IDTAG = 28
-CONNECTOR_REG_ADDR_STATUS_CODE = 50
 
 
 class pyZerovaChgrModbus:
@@ -77,10 +40,10 @@ class pyZerovaChgrModbus:
         Read charger's model name and serial number. LSB, MSW, ASCII encoding
         """
         data = self.client.read_holding_registers(address=EVSE_REG_ADDR_MODEL_NAME, count=32)
-        modelName = self.u16ToByte(data.registers).decode('ascii').rstrip('\x00')
+        modelName = self.byte_swap_u16(data.registers).decode('ascii').rstrip('\x00')
 
         data = self.client.read_holding_registers(address=EVSE_REG_ADDR_SN, count=32)
-        serialNumber = self.u16ToByte(data.registers).decode('ascii').rstrip('\x00')
+        serialNumber = self.byte_swap_u16(data.registers).decode('ascii').rstrip('\x00')
 
         return modelName, serialNumber
     
@@ -103,22 +66,18 @@ class pyZerovaChgrModbus:
     
     def writeConfig(self, newConfig) -> list:
         """
-        Takes in a list of 7 numbers, refer to readConfig for interpretation; reads values after writing
+        Sends new configuration to charger, then blips Save_Config coil high, writing the new config to NAND flash
+        :param new_configuration: List of 7 booleans and numbers, that correspond to Auth, EvccidAuth...
         """
         self.client.write_registers(address=EVSE_REG_ADDR_AUTH_MODE, values = newConfig)
         self.client.write_coil(address=EVSE_COIL_ADDR_SAVE_CONFIG, value=1) #write config on holding register to NAND flash
 
         return self.readConfig()
 
-    def readConnectorStatus(self, conId) -> list:
-        """
-        """
-        # {"sysStatus" : 0,
-        #  ""}
-
-    def u16ToByte(self, data: list) -> list:
+    def byte_swap_u16(self, data: list) -> bytearray:
         """
         Uses little endianness to convert a list of Modbus register values (16 bit / word (1 register)) to a bytearray
+        :param data: raw list of u16 values
         """ 
         result = bytearray()
         for word in data:
@@ -154,6 +113,7 @@ class pyZerovaChgrModbus:
             return 1, "Reboot request sent successfully"
         except Exception as e:
             return 0, str(e)
+        
     def BTN_start_charging(self,connectorID = 1):
         """
         Send command to start charging for the given connector.
@@ -183,6 +143,7 @@ class pyZerovaChgrModbus:
             return 1, f"Stop charging request sent to connector {connectorID}"
         except Exception as e:
             return 0, str(e)
+        
     def get_connector_info(self,connectorID):
         """
         Fetches the present connector info including:
@@ -209,62 +170,63 @@ class pyZerovaChgrModbus:
                 return 0, "Error reading connector-info registers"
 
             connector_info = result.registers
+            connector_info_json = {}
 
             # Extract values from the read data
-            # Extract values from the read data
-            system_state = connector_info[CONNECTOR_REG_ADDR_SYSTEM_STATE]
-            plug_status = connector_info[CONNECTOR_REG_ADDR_PLUG_STATUS]
-            soc = connector_info[CONNECTOR_REG_ADDR_PRESENT_SOC]
-            present_power = connector_info[CONNECTOR_REG_ADDR_PRESENT_POWER]
-            present_voltage_dc = connector_info[CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_DC]
-            present_voltage_ac_l1 = connector_info[CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_AC_L1]
-            present_voltage_ac_l2 = connector_info[CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_AC_L2]
-            present_voltage_ac_l3 = connector_info[CONNECTOR_REG_ADDR_PRESENT_VOLTAGE_AC_L3]
-            present_current_dc = connector_info[CONNECTOR_REG_ADDR_PRESENT_CURRENT_DC]
-            present_current_ac_l1 = connector_info[CONNECTOR_REG_ADDR_PRESENT_CURRENT_AC_L1]
-            present_current_ac_l2 = connector_info[CONNECTOR_REG_ADDR_PRESENT_CURRENT_AC_L2]
-            present_current_ac_l3 = connector_info[CONNECTOR_REG_ADDR_PRESENT_CURRENT_AC_L3]
-            charged_energy = connector_info[CONNECTOR_REG_ADDR_CHARGED_ENERGY]
-            charged_duration = (connector_info[CONNECTOR_REG_ADDR_CHARGED_DURATION + 1] << 16) | connector_info[CONNECTOR_REG_ADDR_CHARGED_DURATION]
-            remaining_time = (connector_info[CONNECTOR_REG_ADDR_PRESENT_REMAIN_TIME + 1] << 16) | connector_info[CONNECTOR_REG_ADDR_PRESENT_REMAIN_TIME]
+            raw_system_state = connector_info[CONNECTOR_REG_ADDR_SYSTEM_STATE]
+            system_state = CONNECTOR_SYSTEM_STATE_MAP[raw_system_state]
+            connector_info_json['system state'] = system_state
+            connector_info_json['plug_status'] = connector_info[CONNECTOR_REG_ADDR_PLUG_STATUS] # 0 : Disconnected, 1 : Connected
+            connector_info_json['soc'] = connector_info[CONNECTOR_REG_ADDR_PRESENT_SOC]
+
+            connector_output_electrical_data = []
+            for register in range(CONNECTOR_REG_ADDR_PRESENT_POWER, CONNECTOR_REG_ADDR_CHARGED_DURATION + 2, 2):
+                if register == 23: # account for empty register
+                    continue
+                raw = connector_info[register : register + 2]
+                four_bytes_in_order = self.byte_swap_u16(raw)
+                output_float = struct.unpack('f', bytes(four_bytes_in_order))[0]
+                connector_output_electrical_data.append(output_float)
+
+            electrical_data_names = [
+                "present_power",
+                "present_voltage_dc",
+                "present_voltage_ac_l1",
+                "present_voltage_ac_l2",
+                "present_voltage_ac_l3",
+                "present_current_dc",
+                "present_current_ac_l1",
+                "present_current_ac_l2",
+                "present_current_ac_l3",
+                "charged_energy",
+                "charged_duration",
+                "present_remain_time"
+            ]
+            for i, data in enumerate(connector_output_electrical_data):
+                connector_info_json[electrical_data_names[i]] = data
+
             session_idtag = connector_info[CONNECTOR_REG_ADDR_PRESENT_IDTAG]
             status_code = connector_info[CONNECTOR_REG_ADDR_STATUS_CODE]
 
             # Return a list with all the values
-            return [
-                {"System State": system_state},
-                {"Plug Status": plug_status},
-                {"SOC": soc},
-                {"Present Power": present_power},
-                {"Present Voltage DC": present_voltage_dc},
-                {"Present Voltage AC L1": present_voltage_ac_l1},
-                {"Present Voltage AC L2": present_voltage_ac_l2},
-                {"Present Voltage AC L3": present_voltage_ac_l3},
-                {"Present Current DC": present_current_dc},
-                {"Present Current AC L1": present_current_ac_l1},
-                {"Present Current AC L2": present_current_ac_l2},
-                {"Present Current AC L3": present_current_ac_l3},
-                {"Charged Energy": charged_energy},
-                {"Charged Duration": charged_duration},
-                {"Remaining Time": remaining_time},
-                {"Session ID Tag": session_idtag},
-                {"Connector Status Code": status_code}
-            ]
+            return connector_info_json
 
         except Exception as e:
             return 0, str(e)
-# test = pyZerovaChgrModbus()
-# test.connect('192.168.10.155', 'hi')
-# print(test.readInfo())
-# test.readConfig()
-# test.writeConfig([1, 0, 0, 0, 0])
-# print(test.curConfig)
+        
+    
+test = pyZerovaChgrModbus()
+test.connect('192.168.10.155', 'hi')
+print(test.readInfo())
+test.readConfig()
+test.writeConfig([1, 0, 0, 0, 0])
+print(test.curConfig)
 
-# msg = test.BTN_start_charging()
-# print(msg)
-# msg = test.BTN_stop_charging()
-# print(msg)
-# msg = test.get_connector_info(1)
-# print(msg)
+msg = test.BTN_start_charging()
+print(msg)
+msg = test.BTN_stop_charging()
+print(msg)
+msg = test.get_connector_info(1)
+print(msg)
 # msg = test.BTN_reboot()
 # print(msg)
