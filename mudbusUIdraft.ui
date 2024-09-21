@@ -1,82 +1,445 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <widget class="QWidget" name="MainWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>649</width>
-    <height>579</height>
+    <width>600</width>
+    <height>800</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Modbus TCP Client V1.2</string>
   </property>
-  <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>331</width>
-      <height>111</height>
-     </rect>
-    </property>
-    <layout class="QHBoxLayout" name="horizontalLayout_3">
-     <item>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item>
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>IP address</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QTextEdit" name="textEdit"/>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
-         <item>
-          <widget class="QLabel" name="label_2">
-           <property name="text">
-            <string>Password</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QTextEdit" name="textEdit_2"/>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton">
+  
+  <!-- Main layout -->
+  <layout class="QVBoxLayout" name="main_layout">
+   
+   <!-- Connect Section -->
+   <item>
+    <layout class="QGridLayout" name="connect_section">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_ipaddr">
        <property name="text">
-        <string>connect</string>
+        <string>IP Address</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="input_ipaddr">
+       <property name="placeholderText">
+        <string>Enter IP address</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_pwd">
+       <property name="text">
+        <string>Password</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="input_pwd">
+       <property name="placeholderText">
+        <string>Enter password</string>
+       </property>
+       <property name="echoMode">
+        <enum>QLineEdit::Password</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QPushButton" name="connect_button">
+       <property name="text">
+        <string>Connect</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QPushButton" name="disconnect_button">
+       <property name="text">
+        <string>Disconnect</string>
        </property>
       </widget>
      </item>
     </layout>
-   </widget>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>649</width>
-     <height>22</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+   </item>
+   
+   <!-- Message Section -->
+   <item>
+    <widget class="QLabel" name="label_messages">
+     <property name="text">
+      <string>Messages</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QTextEdit" name="info_area">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="placeholderText">
+      <string>Messages will appear here...</string>
+     </property>
+    </widget>
+   </item>
+   
+   <!-- Connector Section -->
+   <item>
+    <layout class="QGridLayout" name="connector_section">
+     
+     <!-- Checkboxes and buttons for each connector -->
+     <item row="0" column="0">
+      <widget class="QCheckBox" name="connector_1_check">
+       <property name="text">
+        <string>Connector 1</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QPushButton" name="start_button_1">
+       <property name="text">
+        <string>Start Charging</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QPushButton" name="stop_button_1">
+       <property name="text">
+        <string>Stop Charging</string>
+       </property>
+      </widget>
+     </item>
+     
+     <item row="1" column="0">
+      <widget class="QCheckBox" name="connector_2_check">
+       <property name="text">
+        <string>Connector 2</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QPushButton" name="start_button_2">
+       <property name="text">
+        <string>Start Charging</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QPushButton" name="stop_button_2">
+       <property name="text">
+        <string>Stop Charging</string>
+       </property>
+      </widget>
+     </item>
+
+     <item row="2" column="0">
+      <widget class="QCheckBox" name="connector_3_check">
+       <property name="text">
+        <string>Connector 3</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QPushButton" name="start_button_3">
+       <property name="text">
+        <string>Start Charging</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QPushButton" name="stop_button_3">
+       <property name="text">
+        <string>Stop Charging</string>
+       </property>
+      </widget>
+     </item>
+
+     <item row="3" column="0">
+      <widget class="QCheckBox" name="connector_4_check">
+       <property name="text">
+        <string>Connector 4</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QPushButton" name="start_button_4">
+       <property name="text">
+        <string>Start Charging</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QPushButton" name="stop_button_4">
+       <property name="text">
+        <string>Stop Charging</string>
+       </property>
+      </widget>
+     </item>
+
+     <!-- Connector information fields -->
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_system_state">
+       <property name="text">
+        <string>System State</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLineEdit" name="system_state">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_plug_status">
+       <property name="text">
+        <string>Plug Status</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QLineEdit" name="plug_status">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_soc">
+       <property name="text">
+        <string>State of Charge (SOC)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QLineEdit" name="soc">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="7" column="0">
+      <widget class="QLabel" name="label_present_power">
+       <property name="text">
+        <string>Present Power (W)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QLineEdit" name="present_power">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="8" column="0">
+      <widget class="QLabel" name="label_present_voltage_dc">
+       <property name="text">
+        <string>Present Voltage DC (V)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QLineEdit" name="present_voltage_dc">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_present_voltage_ac_l1">
+       <property name="text">
+        <string>Present Voltage AC L1 (V)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QLineEdit" name="present_voltage_ac_l1">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="10" column="0">
+      <widget class="QLabel" name="label_present_voltage_ac_l2">
+       <property name="text">
+        <string>Present Voltage AC L2 (V)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="1">
+      <widget class="QLineEdit" name="present_voltage_ac_l2">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="11" column="0">
+      <widget class="QLabel" name="label_present_voltage_ac_l3">
+       <property name="text">
+        <string>Present Voltage AC L3 (V)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="1">
+      <widget class="QLineEdit" name="present_voltage_ac_l3">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="12" column="0">
+      <widget class="QLabel" name="label_present_current_dc">
+       <property name="text">
+        <string>Present Current DC (A)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="12" column="1">
+      <widget class="QLineEdit" name="present_current_dc">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="13" column="0">
+      <widget class="QLabel" name="label_present_current_ac_l1">
+       <property name="text">
+        <string>Present Current AC L1 (A)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="13" column="1">
+      <widget class="QLineEdit" name="present_current_ac_l1">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="14" column="0">
+      <widget class="QLabel" name="label_present_current_ac_l2">
+       <property name="text">
+        <string>Present Current AC L2 (A)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="14" column="1">
+      <widget class="QLineEdit" name="present_current_ac_l2">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="15" column="0">
+      <widget class="QLabel" name="label_present_current_ac_l3">
+       <property name="text">
+        <string>Present Current AC L3 (A)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="15" column="1">
+      <widget class="QLineEdit" name="present_current_ac_l3">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="16" column="0">
+      <widget class="QLabel" name="label_charged_energy">
+       <property name="text">
+        <string>Charged Energy (kWh)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="16" column="1">
+      <widget class="QLineEdit" name="charged_energy">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="17" column="0">
+      <widget class="QLabel" name="label_charged_duration">
+       <property name="text">
+        <string>Charged Duration (Sec)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="17" column="1">
+      <widget class="QLineEdit" name="charged_duration">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="18" column="0">
+      <widget class="QLabel" name="label_remaining_time">
+       <property name="text">
+        <string>Remaining Time (Sec)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="18" column="1">
+      <widget class="QLineEdit" name="remaining_time">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="19" column="0">
+      <widget class="QLabel" name="label_session_id_tag">
+       <property name="text">
+        <string>Session ID Tag</string>
+       </property>
+      </widget>
+     </item>
+     <item row="19" column="1">
+      <widget class="QLineEdit" name="session_id_tag">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="20" column="0">
+      <widget class="QLabel" name="label_status_code">
+       <property name="text">
+        <string>Connector Status Code</string>
+       </property>
+      </widget>
+     </item>
+     <item row="20" column="1">
+      <widget class="QLineEdit" name="status_code">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+    </layout>
+   </item>
+   
+  </layout>
  </widget>
  <resources/>
  <connections/>
