@@ -14,7 +14,7 @@ The frontend will be either PyQT or React.
  - pyqt6-tools only allow python 3.5 -3.9   https://pypi.org/project/pyqt6-tools/#installation
 
 ## github
-Recommended Steps:
+### Recommended Steps for push:
 Create and switch to the new branch:
 
 bash
@@ -35,3 +35,4 @@ Push your new branch to the remote (if needed):
 bash
 Copy code
 git push origin new-branch-name
+
