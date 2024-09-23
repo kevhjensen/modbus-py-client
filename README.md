@@ -8,31 +8,27 @@ The frontend will be either PyQT or React.
 
 
 
-## notes
+## Dependencies notes
 
  - https://www.minitool.com/news/pip-uninstall.html
+
+## pyqt note
  - pyqt6-tools only allow python 3.5 -3.9   https://pypi.org/project/pyqt6-tools/#installation
+ - To open the QT GUI designer, run command `pyqt6-tools designer`, then select or create a .ui file
 
 ## github
 ### Recommended Steps for push:
 Create and switch to the new branch:
 
-bash
-Copy code
-git checkout -b new-branch-name
-Stage your changes:
+ - `git checkout -b new-branch-name`: create a new branch if needed
+ - `git add .`
+ - `git commit -m "Descriptive commit message"`
+ - `git push origin new-branch-name`
 
-bash
-Copy code
-git add .
-Commit your changes:
+### Recommended Steps for updating code from remote to local repo using rebase:
+ - `git fetch origin`: Get the latest changes from the remote
+ - `git checkout B`: Switch to the local branch B if needed
+ - `git rebase origin/A`: apply the changes from remote branch A on top of the current changes in local branch B
 
-bash
-Copy code
-git commit -m "Descriptive commit message"
-Push your new branch to the remote (if needed):
-
-bash
-Copy code
-git push origin new-branch-name
-
+ - `git rebase --continue`: During a rebase, if there are conflicts, Git will pause and ask you to resolve them. After resolving conflicts, continue the rebase process
+ - `git rebase --abort`: abort the rebase in case something goes wrong
