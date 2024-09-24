@@ -1,5 +1,62 @@
-from PyQt6.QtWidgets import QScrollArea,QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton, QTextEdit, QCheckBox, QGroupBox, QMessageBox
-from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QDialog,QSplitter,QScrollArea,QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton, QTextEdit, QCheckBox, QGroupBox, QMessageBox
+from PyQt6.QtCore import QTimer,Qt
+
+class ConfigDialog(QDialog):
+    def __init__(self,default_vals):
+        super().__init__()
+        self.setWindowTitle("Configuration")
+        self.default_vals = default_vals
+        self.init_ui()
+        
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        # Fields and labels
+        self.fields = [
+            "Auth",
+            "EvccidAuth",
+            "MaxEnergy",
+            "MaxPower",
+            "MaxCurrent",
+            "MaxDuration",
+            "RfidEndian",
+            "ISO-15118 enable",
+            "ISO-15118 PnC enable"
+        ]
+
+        
+        # Store input widgets
+        self.input_widgets = {}
+
+        grid_layout = QGridLayout()
+        for i, field_name in enumerate(self.fields):
+            label = QLabel(field_name)
+            line_edit = QLineEdit()
+            # Set the default value from the backend
+            line_edit.setText(str(self.default_vals[i]))
+            grid_layout.addWidget(label, i, 0)
+            grid_layout.addWidget(line_edit, i, 1)
+            self.input_widgets[field_name] = line_edit
+
+        layout.addLayout(grid_layout)
+
+        # Buttons: Save and Reset
+        button_layout = QHBoxLayout()
+        self.save_button = QPushButton("Save Config")
+        self.reset_button = QPushButton("Reset")
+        button_layout.addWidget(self.save_button)
+        button_layout.addWidget(self.reset_button)
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+        # Connect button signals
+        self.save_button.clicked.connect(self.on_save_config)
+        self.reset_button.clicked.connect(self.on_reset)
+    def on_save_config(self):
+        pass
+    def on_reset(self):
+        pass
 class ModbusUI(QWidget):
 
     def __init__(self,modbus):
@@ -14,7 +71,7 @@ class ModbusUI(QWidget):
 
         self.input_ipaddr = None
         self.input_pwd = None
-        self.connect_button = None
+        self.login_button = None
         self.disconnect_button = None
         self.info_area = None 
         self.connector_checkbox_section = None
@@ -37,15 +94,23 @@ class ModbusUI(QWidget):
         # Initialize each section
         connect_section = self.init_charger_connect_section()
         message_section = self.init_message_display_section()
-        connector_checkbox = self.init_connector_checkbox_section()
-        connector_section = self.init_connector_info_section()
         
+        combined_widget = QWidget()
+        combined_layout = QVBoxLayout()
+        combined_layout.addLayout(self.init_connector_checkbox_section())
+        combined_layout.addLayout(self.init_connector_info_section())
+        combined_widget.setLayout(combined_layout)
+
+        # Create a splitter
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        splitter.addWidget(message_section)
+        splitter.addWidget(combined_widget)
+
         # Add sections to the main layout
         main_layout.addLayout(connect_section)
         main_layout.addWidget(QLabel("Messages"))
-        main_layout.addWidget(message_section)
-        main_layout.addLayout(connector_checkbox)
-        main_layout.addLayout(connector_section)
+        main_layout.addWidget(splitter)
+        
     
         # Set layout for the main window
         self.setLayout(main_layout)
@@ -67,19 +132,22 @@ class ModbusUI(QWidget):
         self.input_pwd.setPlaceholderText("Enter password")
         self.input_pwd.setEchoMode(QLineEdit.EchoMode.Password)
 
-        self.connect_button = QPushButton('Connect', self)
+        self.login_button = QPushButton('Login', self)
         self.disconnect_button = QPushButton('Disconnect', self)
         #reboot button
         self.reboot_button = QPushButton('Reboot', self)
-
+        #configure button
+        self.configure_button = QPushButton('Configure', self)
+        self.configure_button.hide()
         # Add connect section elements to grid layout
         input_section.addWidget(QLabel("IP Address"), 0, 0)
         input_section.addWidget(self.input_ipaddr, 0, 1)
         input_section.addWidget(QLabel("Password"), 1, 0)
         input_section.addWidget(self.input_pwd, 1, 1)
-        button_section.addWidget(self.connect_button)
+        button_section.addWidget(self.login_button)
         button_section.addWidget(self.disconnect_button)
         button_section.addWidget(self.reboot_button)
+        button_section.addWidget(self.configure_button)
 
         connect_section.addLayout(input_section)
         connect_section.addLayout(button_section)
@@ -88,9 +156,11 @@ class ModbusUI(QWidget):
         
     # Function to initialize the Message Display section
     def init_message_display_section(self):
+        # Create a scroll area and set the group box as its widget
         self.info_area = QTextEdit(self)
         self.info_area.setReadOnly(True)
         self.info_area.setPlaceholderText("Messages will appear here...")
+        
         return self.info_area
     # Function to initialize the Connector chekcboxes
     def init_connector_checkbox_section(self):
@@ -183,19 +253,22 @@ class ModbusUI(QWidget):
     #Signal binds to all UI
     def bind_signals(self):
         # Connect buttons to methods
-        self.connect_button.clicked.connect(self.on_connect)
+        self.login_button.clicked.connect(self.on_login)
         #self.disconnect_button.clicked.connect(self.manage_disconnect)
 
         #reboot signal bind
         self.reboot_button.clicked.connect(self.on_reboot)
+
+        #configure button
+        self.configure_button.clicked.connect(self.show_config_dialog)
         # Bind the checkboxes to toggle the visibility of connector-info sections
         for i in range(self.num_of_connector):
             checkbox, start_button, stop_button = self.connector_checbox_list[i]
             checkbox.stateChanged.connect(lambda state, idx=i: self.on_check_connector_checkbox(idx))
             start_button.clicked.connect(lambda checked, idx=i: self.on_start_charging(idx))
             stop_button.clicked.connect(lambda checked, idx=i: self.on_stop_charging(idx))
-    def on_connect(self):
-        self.info_area.setText("")
+    def on_login(self):
+        #self.info_area.setText("")
         # Get values from input fields
         ipaddr = self.input_ipaddr.text()
         pwd = self.input_pwd.text()
@@ -206,6 +279,16 @@ class ModbusUI(QWidget):
             modelName,serialNumber = self.modbus.readInfo()
             self.info_area.append(f"Model Number: {modelName}\nSerial Number: {serialNumber}")
             print("success connection")
+            # Show the "Configure" button
+            self.configure_button.show()
+            # Read default configuration values
+            read_config_success, default_vals = self.modbus.readConfig()
+            if read_config_success:
+                # Create the ConfigDialog instance but do not show it yet
+                self.config_dialog = ConfigDialog(default_vals)
+            else:
+                QMessageBox.warning(self, 'Error', f"Failed to retrieve configuration: {default_vals}")
+                self.config_dialog = None
         else:
             QMessageBox.warning(self, 'Error', 'Connection failed. Please check ip address and pwd.')
             self.info_area.append(f"Error: {msg}")
@@ -222,6 +305,12 @@ class ModbusUI(QWidget):
         else:
             QMessageBox.warning(self, 'Error', 'reboot failed.')
             self.info_area.append(f"Error: {msg}")
+
+    def show_config_dialog(self):
+        if self.config_dialog:
+            self.config_dialog.show()
+        else:
+            QMessageBox.warning(self, 'Error', 'Configuration dialog is not available.')
 
     # Toggle visibility of connector info sections based on checkbox
     def on_check_connector_checkbox(self,connector_id):
