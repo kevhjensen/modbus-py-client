@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton, QTextEdit, QCheckBox, QGroupBox, QMessageBox
+from PyQt6.QtWidgets import QScrollArea,QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton, QTextEdit, QCheckBox, QGroupBox, QMessageBox
 from PyQt6.QtCore import QTimer
 class ModbusUI(QWidget):
 
@@ -52,13 +52,14 @@ class ModbusUI(QWidget):
 
         # Window settings
         self.setWindowTitle('Modbus TCP Client V1.2')
-        self.setGeometry(300, 300, 600, 800)
+        self.setGeometry(300, 300, 600, 600)
         self.show()
 
     # Function to initialize the Connect section
     def init_charger_connect_section(self):
-        connect_section = QGridLayout()
-
+        connect_section = QVBoxLayout()
+        input_section = QGridLayout()
+        button_section = QHBoxLayout()
         self.input_ipaddr = QLineEdit(self)
         self.input_ipaddr.setPlaceholderText("Enter IP address")
         
@@ -72,13 +73,17 @@ class ModbusUI(QWidget):
         self.reboot_button = QPushButton('Reboot', self)
 
         # Add connect section elements to grid layout
-        connect_section.addWidget(QLabel("IP Address"), 0, 0)
-        connect_section.addWidget(self.input_ipaddr, 0, 1)
-        connect_section.addWidget(QLabel("Password"), 1, 0)
-        connect_section.addWidget(self.input_pwd, 1, 1)
-        connect_section.addWidget(self.connect_button, 2, 0)
-        connect_section.addWidget(self.disconnect_button, 2, 1)
-        connect_section.addWidget(self.reboot_button)
+        input_section.addWidget(QLabel("IP Address"), 0, 0)
+        input_section.addWidget(self.input_ipaddr, 0, 1)
+        input_section.addWidget(QLabel("Password"), 1, 0)
+        input_section.addWidget(self.input_pwd, 1, 1)
+        button_section.addWidget(self.connect_button)
+        button_section.addWidget(self.disconnect_button)
+        button_section.addWidget(self.reboot_button)
+
+        connect_section.addLayout(input_section)
+        connect_section.addLayout(button_section)
+
         return connect_section
         
     # Function to initialize the Message Display section
@@ -107,10 +112,10 @@ class ModbusUI(QWidget):
         
         for i in range(self.num_of_connector):
             connector_name = "Connector " + str(i)
-            group_box, info_widgets = self.init_single_connector_info_component(connector_name)
-            group_box.hide()
-            self.connector_info_section.addWidget(group_box)
-            self.connectors_info_list.append(group_box)
+            scroll_area, info_widgets = self.init_single_connector_info_component(connector_name)
+            scroll_area.hide()
+            self.connector_info_section.addWidget(scroll_area)
+            self.connectors_info_list.append(scroll_area)
             self.connector_info_widgets_list.append(info_widgets)  # Store the widgets for this connector
 
         return self.connector_info_section
@@ -155,7 +160,13 @@ class ModbusUI(QWidget):
             info_widgets[field_name] = line_edit
 
         group_box.setLayout(layout)
-        return group_box, info_widgets
+
+        # Create a scroll area and set the group box as its widget
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(group_box)
+
+        return scroll_area, info_widgets
 
     '''
     --------------------------------------------------------------------------------------
