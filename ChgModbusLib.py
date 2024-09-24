@@ -41,7 +41,7 @@ class pyZerovaChgrModbus:
         """
         data = self.client.read_holding_registers(address=EVSE_REG_ADDR_MODEL_NAME, count=32)
         modelName = self.byte_swap_u16(data.registers).decode('ascii').rstrip('\x00')
-
+        
         data = self.client.read_holding_registers(address=EVSE_REG_ADDR_SN, count=32)
         serialNumber = self.byte_swap_u16(data.registers).decode('ascii').rstrip('\x00')
 
@@ -60,9 +60,12 @@ class pyZerovaChgrModbus:
          "RfidEndian" : 6} # 0 = little, 1 = big
         """
         data = self.client.read_holding_registers(address=EVSE_REG_ADDR_AUTH_MODE, count=9)
+        if data.isError():
+            return 0, "Error reading configuration"
+        
         self.curConfig = data.registers
-
-        return data.registers
+        
+        return 1,data.registers
     
     def writeConfig(self, newConfig) -> list:
         """
