@@ -68,6 +68,8 @@ class ModbusUI(QWidget):
 
         self.connect_button = QPushButton('Connect', self)
         self.disconnect_button = QPushButton('Disconnect', self)
+        #reboot button
+        self.reboot_button = QPushButton('Reboot', self)
 
         # Add connect section elements to grid layout
         connect_section.addWidget(QLabel("IP Address"), 0, 0)
@@ -76,9 +78,9 @@ class ModbusUI(QWidget):
         connect_section.addWidget(self.input_pwd, 1, 1)
         connect_section.addWidget(self.connect_button, 2, 0)
         connect_section.addWidget(self.disconnect_button, 2, 1)
-
+        connect_section.addWidget(self.reboot_button)
         return connect_section
-
+        
     # Function to initialize the Message Display section
     def init_message_display_section(self):
         self.info_area = QTextEdit(self)
@@ -173,6 +175,8 @@ class ModbusUI(QWidget):
         self.connect_button.clicked.connect(self.on_connect)
         #self.disconnect_button.clicked.connect(self.manage_disconnect)
 
+        #reboot signal bind
+        self.reboot_button.clicked.connect(self.on_reboot)
         # Bind the checkboxes to toggle the visibility of connector-info sections
         for i in range(self.num_of_connector):
             checkbox, start_button, stop_button = self.connector_checbox_list[i]
@@ -186,7 +190,7 @@ class ModbusUI(QWidget):
         pwd = self.input_pwd.text()
 
         isSuccess,msg = self.modbus.connect(ipaddr,pwd)
-        if isSuccess == 1:
+        if isSuccess:
             self.info_area.append(msg + '\n')
             modelName,serialNumber = self.modbus.readInfo()
             self.info_area.append(f"Model Number: {modelName}\nSerial Number: {serialNumber}")
@@ -200,7 +204,14 @@ class ModbusUI(QWidget):
         button on click disconnect 
         '''
         pass
-        
+    def on_reboot(self):
+        isSuccess,msg = self.modbus.BTN_reboot()
+        if isSuccess:
+            self.info_area.append(msg + '\n')
+        else:
+            QMessageBox.warning(self, 'Error', 'reboot failed.')
+            self.info_area.append(f"Error: {msg}")
+
     # Toggle visibility of connector info sections based on checkbox
     def on_check_connector_checkbox(self,connector_id):
         # set the relation between the visibility of each connector-info and their checkbox 
