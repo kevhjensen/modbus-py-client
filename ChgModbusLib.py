@@ -114,7 +114,7 @@ class pyZerovaChgrModbus:
         except Exception as e:
             return 0, str(e)
         
-    def BTN_start_charging(self,connectorID = 1):
+    def BTN_start_charging(self,connectorID):
         """
         Send command to start charging for the given connector.
         :param connector_index: The index of the connector (e.g., 1 for Connector 1)
@@ -129,7 +129,7 @@ class pyZerovaChgrModbus:
         except Exception as e:
             return 0, str(e)
     
-    def BTN_stop_charging(self,connectorID = 1):
+    def BTN_stop_charging(self,connectorID):
         """
         Send command to stop charging for the given connector.
         :param connector_index: The index of the connector (e.g., 1 for Connector 1)
@@ -209,7 +209,7 @@ class pyZerovaChgrModbus:
             status_code = connector_info[CONNECTOR_REG_ADDR_STATUS_CODE]
 
             # Return a list with all the values
-            return connector_info_json
+            return 1,connector_info_json
 
         except Exception as e:
             return 0, str(e)

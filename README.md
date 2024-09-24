@@ -6,7 +6,9 @@ The backend is built on the pymodbus library, and can be used as a library for o
 
 The frontend will be either PyQT or React.
 
-
+# start the program
+ - run cmd `pip install -r requirements. txt` to install all packages 
+ - run `app.py` file
 
 ## Dependencies notes
 
