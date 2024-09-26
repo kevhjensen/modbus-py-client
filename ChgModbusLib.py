@@ -29,7 +29,9 @@ class pyZerovaChgrModbus:
         try:
             self.client = ModbusTcpClient(ipAddr)
             self.client.connect()
-            self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=self.passwordHashAndModbusEncode(password))
+            response = self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=self.passwordHashAndModbusEncode(password))
+            if response.isError():
+                return 0, f"Modbus Error: {response}"
             #self.curConfig = self.readConfig()
             return 1, "connection success"
         except Exception as e:
@@ -216,10 +218,22 @@ class pyZerovaChgrModbus:
 
         except Exception as e:
             return 0, str(e)
-        
+
+    def read_input_voltage(self):
+        data = self.client.read_holding_registers(address=EVSE_REG_ADDR_AC_INPUT_VOLTAGE_L1, count=8)
+        if data.isError():
+            return 0, f"error:{data}"
+        input_voltage_list=[]
+        for i in range(0,7,2):
+            #combine 2 little endian
+            four_bytes_in_order = self.byte_swap_u16(data.registers[i:i+2])
+            output_float = struct.unpack('f', bytes(four_bytes_in_order))[0]
+            input_voltage_list.append(output_float)
+
+        return 1,input_voltage_list  
     
-# test = pyZerovaChgrModbus()
-# test.connect('192.168.10.155', 'hi')
+test = pyZerovaChgrModbus()
+test.connect('192.168.10.155', 'hi')
 # print(test.readInfo())
 # test.readConfig()
 # test.writeConfig([1, 0, 0, 0, 0])
@@ -233,3 +247,5 @@ class pyZerovaChgrModbus:
 # print(msg)
 # msg = test.BTN_reboot()
 # print(msg)
+
+print(test.read_input_voltage())

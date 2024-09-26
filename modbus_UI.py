@@ -290,7 +290,7 @@ class ModbusUI(QWidget):
                 QMessageBox.warning(self, 'Error', f"Failed to retrieve configuration: {default_vals}")
                 self.config_dialog = None
         else:
-            QMessageBox.warning(self, 'Error', 'Connection failed. Please check ip address and pwd.')
+            QMessageBox.warning(self, 'Error', msg)
             self.info_area.append(f"Error: {msg}")
     
     def on_disconnect(self):
