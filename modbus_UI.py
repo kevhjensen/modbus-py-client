@@ -1,62 +1,6 @@
-from PyQt6.QtWidgets import QDialog,QSplitter,QScrollArea,QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton, QTextEdit, QCheckBox, QGroupBox, QMessageBox
+from PyQt6.QtWidgets import QSplitter,QScrollArea,QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton, QTextEdit, QCheckBox, QGroupBox, QMessageBox
 from PyQt6.QtCore import QTimer,Qt
 
-class ConfigDialog(QDialog):
-    def __init__(self,default_vals):
-        super().__init__()
-        self.setWindowTitle("Configuration")
-        self.default_vals = default_vals
-        self.init_ui()
-        
-    def init_ui(self):
-        layout = QVBoxLayout()
-
-        # Fields and labels
-        self.fields = [
-            "Auth",
-            "EvccidAuth",
-            "MaxEnergy",
-            "MaxPower",
-            "MaxCurrent",
-            "MaxDuration",
-            "RfidEndian",
-            "ISO-15118 enable",
-            "ISO-15118 PnC enable"
-        ]
-
-        
-        # Store input widgets
-        self.input_widgets = {}
-
-        grid_layout = QGridLayout()
-        for i, field_name in enumerate(self.fields):
-            label = QLabel(field_name)
-            line_edit = QLineEdit()
-            # Set the default value from the backend
-            line_edit.setText(str(self.default_vals[i]))
-            grid_layout.addWidget(label, i, 0)
-            grid_layout.addWidget(line_edit, i, 1)
-            self.input_widgets[field_name] = line_edit
-
-        layout.addLayout(grid_layout)
-
-        # Buttons: Save and Reset
-        button_layout = QHBoxLayout()
-        self.save_button = QPushButton("Save Config")
-        self.reset_button = QPushButton("Reset")
-        button_layout.addWidget(self.save_button)
-        button_layout.addWidget(self.reset_button)
-        layout.addLayout(button_layout)
-
-        self.setLayout(layout)
-
-        # Connect button signals
-        self.save_button.clicked.connect(self.on_save_config)
-        self.reset_button.clicked.connect(self.on_reset)
-    def on_save_config(self):
-        pass
-    def on_reset(self):
-        pass
 class ModbusUI(QWidget):
 
     def __init__(self,modbus):
@@ -68,6 +12,9 @@ class ModbusUI(QWidget):
         self.connector_checbox_list = [] #tuple(checkbox,button_start,button_stop)
         self.connectors_info_list = []
         self.connector_info_widgets_list = []  # List to store widgets for each connector
+
+        # ConfigWidget reference
+        self.config_widget = None
 
         self.input_ipaddr = None
         self.input_pwd = None
@@ -108,6 +55,7 @@ class ModbusUI(QWidget):
 
         # Add sections to the main layout
         main_layout.addLayout(connect_section)
+        main_layout.addLayout(self.init_config_section())
         main_layout.addWidget(QLabel("Messages"))
         main_layout.addWidget(splitter)
         
@@ -136,9 +84,7 @@ class ModbusUI(QWidget):
         self.disconnect_button = QPushButton('Disconnect', self)
         #reboot button
         self.reboot_button = QPushButton('Reboot', self)
-        #configure button
-        self.configure_button = QPushButton('Configure', self)
-        self.configure_button.hide()
+        
         # Add connect section elements to grid layout
         input_section.addWidget(QLabel("IP Address"), 0, 0)
         input_section.addWidget(self.input_ipaddr, 0, 1)
@@ -147,7 +93,7 @@ class ModbusUI(QWidget):
         button_section.addWidget(self.login_button)
         button_section.addWidget(self.disconnect_button)
         button_section.addWidget(self.reboot_button)
-        button_section.addWidget(self.configure_button)
+        
 
         connect_section.addLayout(input_section)
         connect_section.addLayout(button_section)
@@ -238,6 +184,49 @@ class ModbusUI(QWidget):
 
         return scroll_area, info_widgets
 
+    def init_config_section(self):
+        layout = QVBoxLayout()
+
+        # Fields and labels
+        self.fields = [
+            "Auth",
+            "EvccidAuth",
+            "MaxEnergy",
+            "MaxPower",
+            "MaxCurrent",
+            "MaxDuration",
+            "RfidEndian",
+            "ISO-15118 enable",
+            "ISO-15118 PnC enable"
+        ]
+
+        
+        # Store input widgets
+        self.input_widgets = {}
+
+        grid_layout = QGridLayout()
+        for i, field_name in enumerate(self.fields):
+            label = QLabel(field_name)
+            line_edit = QLineEdit()
+            # Set the default value from the backend
+            line_edit.setText("")
+            grid_layout.addWidget(label, i, 0)
+            grid_layout.addWidget(line_edit, i, 1)
+            self.input_widgets[field_name] = line_edit
+
+        layout.addLayout(grid_layout)
+
+        # Save button
+        self.save_button = QPushButton("Save Config")
+        layout.addWidget(self.save_button)
+
+        #self.setLayout(layout)
+
+        
+
+        
+
+        return layout
     '''
     --------------------------------------------------------------------------------------
     ----------------------------------------------------------------------------------------------
@@ -259,14 +248,17 @@ class ModbusUI(QWidget):
         #reboot signal bind
         self.reboot_button.clicked.connect(self.on_reboot)
 
-        #configure button
-        self.configure_button.clicked.connect(self.show_config_dialog)
+        # Connect save button signal
+        self.save_button.clicked.connect(self.on_save_config)
+        
         # Bind the checkboxes to toggle the visibility of connector-info sections
         for i in range(self.num_of_connector):
             checkbox, start_button, stop_button = self.connector_checbox_list[i]
             checkbox.stateChanged.connect(lambda state, idx=i: self.on_check_connector_checkbox(idx))
             start_button.clicked.connect(lambda checked, idx=i: self.on_start_charging(idx))
             stop_button.clicked.connect(lambda checked, idx=i: self.on_stop_charging(idx))
+    def on_save_config(self):
+        pass
     def on_login(self):
         #self.info_area.setText("")
         # Get values from input fields
@@ -279,13 +271,12 @@ class ModbusUI(QWidget):
             modelName,serialNumber = self.modbus.readInfo()
             self.info_area.append(f"Model Number: {modelName}\nSerial Number: {serialNumber}")
             print("success connection")
-            # Show the "Configure" button
-            self.configure_button.show()
+            
             # Read default configuration values
             read_config_success, default_vals = self.modbus.readConfig()
             if read_config_success:
                 # Create the ConfigDialog instance but do not show it yet
-                self.config_dialog = ConfigDialog(default_vals)
+                self.config_dialog = ConfigDialog()
             else:
                 QMessageBox.warning(self, 'Error', f"Failed to retrieve configuration: {default_vals}")
                 self.config_dialog = None
