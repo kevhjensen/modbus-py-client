@@ -21,6 +21,7 @@ class LoginSection(QGroupBox):
 
         #login,reboot button
         self.login_button = QPushButton('Login', self)
+        self.disconnect_button = QPushButton('Disconnect', self)
         self.reboot_button = QPushButton('Reboot', self)
         
         # Add connect section elements to grid layout
@@ -29,8 +30,11 @@ class LoginSection(QGroupBox):
         input_section_QG.addWidget(QLabel("Password"), 1, 0)
         input_section_QG.addWidget(self.input_pwd, 1, 1)
         button_section_QH.addWidget(self.login_button)
+        button_section_QH.addWidget(self.disconnect_button)
         button_section_QH.addWidget(self.reboot_button)
-        
+
+        self.login_button.setVisible(True)
+        self.disconnect_button.setVisible(False)
 
         login_section_QV.addLayout(input_section_QG)
         login_section_QV.addLayout(button_section_QH)
@@ -40,13 +44,22 @@ class LoginSection(QGroupBox):
     def signal_bind(self):
         self.login_button.clicked.connect(self.login)
         self.reboot_button.clicked.connect(self.reboot)
-        
+        self.disconnect_button.clicked.connect(self.disconnect)
     def login(self):
         ipaddr = self.input_ipaddr.text()
         pwd = self.input_pwd.text()
         if self.callbacks["login"]:
             self.callbacks["login"](ipaddr, pwd)
-
+            self.login_button.setVisible(False)
+            self.disconnect_button.setVisible(True)
     def reboot(self):
         if self.callbacks["reboot"]:
             self.callbacks["reboot"]()
+    
+    def disconnect(self):
+        if self.callbacks["disconnect"]:
+            self.callbacks["disconnect"]()  # Call the disconnect callback
+            self.login_button.setVisible(True)
+            self.disconnect_button.setVisible(False)
+
+        

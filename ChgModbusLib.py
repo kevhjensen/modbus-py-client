@@ -4,7 +4,7 @@ from pymodbus.client import ModbusTcpClient
 import struct
 from constants import *
 
-isConnected = False
+#isConnected = False
 isTLS = False
 isCert = False
 isKey = False
@@ -32,11 +32,19 @@ class pyZerovaChgrModbus:
             response = self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=self.passwordHashAndModbusEncode(password))
             if response.isError():
                 return 0, f"Error: {response}"
-            #self.curConfig = self.readConfig()
             return 1, "connection success"
         except Exception as e:
             return 0,str(e)
 
+    def disconnect(self):
+        """
+        disconnect the device
+        """
+        try:
+            self.client.close()
+            return 1, "Disconnection success"
+        except Exception as e:
+            return 0,str(e)
     def readInfo(self) -> dict:
         """
         Read charger's model name and serial number. LSB, MSW, ASCII encoding
@@ -177,7 +185,7 @@ class pyZerovaChgrModbus:
             base_address = connectorID * 1000
 
             # Read 50 registers starting from base address
-            result = self.client.read_holding_registers(base_address + CONNECTOR_REG_ADDR_SYSTEM_STATE, 51)
+            result = self.client.read_holding_registers(base_address + CONNECTOR_REG_ADDR_SYSTEM_STATE, 60)
 
             if result.isError():
                 return 0, f"error:{result}"
@@ -193,7 +201,7 @@ class pyZerovaChgrModbus:
             connector_info_json['soc'] = connector_info[CONNECTOR_REG_ADDR_PRESENT_SOC]
 
             connector_output_electrical_data = []
-            for register in range(CONNECTOR_REG_ADDR_PRESENT_POWER, CONNECTOR_REG_ADDR_CHARGED_DURATION + 2, 2):
+            for register in range(CONNECTOR_REG_ADDR_PRESENT_POWER, CONNECTOR_REG_ADDR_PRESENT_REMAIN_TIME + 1, 2):
                 if register == 23: # account for empty register
                     continue
                 raw = connector_info[register : register + 2]
@@ -215,13 +223,24 @@ class pyZerovaChgrModbus:
                 "charged_duration",
                 "present_remain_time"
             ]
+            
             for i, data in enumerate(connector_output_electrical_data):
                 connector_info_json[electrical_data_names[i]] = data
 
-            session_idtag = connector_info[CONNECTOR_REG_ADDR_PRESENT_IDTAG]
-            status_code = connector_info[CONNECTOR_REG_ADDR_STATUS_CODE]
-
-            # Return a list with all the values
+            session_idtag = ""
+            for i in range(CONNECTOR_REG_ADDR_PRESENT_IDTAG, CONNECTOR_REG_ADDR_STATUS_CODE-CONNECTOR_REG_ADDR_PRESENT_IDTAG+1,2):
+                four_bytes_in_order = self.byte_swap_u16(connector_info[i:i+2])
+                output_float = struct.unpack('f', bytes(four_bytes_in_order))[0]
+                session_idtag+=str(output_float)
+            
+            status_code = ""
+            for i in range(CONNECTOR_REG_ADDR_STATUS_CODE, 11,2):
+                four_bytes_in_order = self.byte_swap_u16(connector_info[i:i+2])
+                output_float = struct.unpack('f', bytes(four_bytes_in_order))[0]
+                status_code+=str(output_float)
+            
+            connector_info_json["session_idtag"] = session_idtag
+            connector_info_json["status_code"] = status_code
             return 1,connector_info_json
 
         except Exception as e:
@@ -232,8 +251,7 @@ class pyZerovaChgrModbus:
         if data.isError():
             return 0, f"error:{data}"
         input_voltage_list=[]
-        for i in range(0,7,2):
-            #combine 2 little endian
+        for i in range(0,7,2): #combine 2 little endian
             four_bytes_in_order = self.byte_swap_u16(data.registers[i:i+2])
             output_float = struct.unpack('f', bytes(four_bytes_in_order))[0]
             input_voltage_list.append(output_float)
