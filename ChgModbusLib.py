@@ -83,8 +83,9 @@ class pyZerovaChgrModbus:
             return 0, f"error: {write_response}"
         save_response = self.client.write_coil(address=EVSE_COIL_ADDR_SAVE_CONFIG, value=1) #write config on holding register to NAND flash
         if save_response.isError():
-            return 1, f"error:{save_response}"
-        return self.readConfig()
+            return 0, f"error:{save_response}"
+        
+        return 1,self.readConfig()
 
     def byte_swap_u16(self, data: list) -> bytearray:
         """

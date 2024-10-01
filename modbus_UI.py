@@ -28,10 +28,12 @@ class ModbusUI(QWidget):
         ------------------Initialize each section----------------------------
         '''
         login_section_callbacks = {"reboot":self.on_reboot,"login":self.on_login}
+        connectors_callbacks = {"start":self.on_start_charging,"stop":self.on_stop_charging}
+        config_callbacks = {"save":self.on_save_config}
+
         self.login_section = LoginSection(login_section_callbacks)
         self.message_section = Message()
-        self.config_section = Configuration()
-        connectors_callbacks = {"start":self.on_start_charging,"stop":self.on_stop_charging}
+        self.config_section = Configuration(config_callbacks)
         self.connectors_section = Connectors(self.num_of_connector,connectors_callbacks)
 
 
@@ -43,7 +45,6 @@ class ModbusUI(QWidget):
         # splitter.addWidget(message_section)
         # splitter.addWidget(connectors_section)
 
-        
         # Add sections to the main layout
         layout_A = QVBoxLayout()
         layout_A.addWidget(self.login_section)
@@ -81,8 +82,44 @@ class ModbusUI(QWidget):
     #Signal binds to all UI
     def bind_signals(self):
         pass
-    def on_save_config(self):
-        pass
+    def string_to_16bit(self,data):
+        try:
+            value = int(data) # Convert the string to an integer             
+            if not (0 <= value <= 65535): # Ensure the value fits within the uint16 range (0 to 65535)
+                raise ValueError("Value must be between 0 and 65535.")
+            
+            return value
+        except ValueError:
+            raise ValueError("Invalid input")
+    def on_save_config(self,input_widgets):
+        '''
+        each val of config is Big endian, MaxEnergy MaxPower MaxCurrent MaxDuration are uint16, other fields are boolean
+        '''
+        new_configs= []
+        # Retrieve values from input fields and convert them to the appropriate types
+        try:
+            new_configs.append(self.string_to_16bit(input_widgets["Auth (0: Disable, 1: Enable)"].text()))
+            new_configs.append(self.string_to_16bit(input_widgets["EvccidAuth (0: Disable, 1: Enable)"].text()))
+            new_configs.append(self.string_to_16bit(input_widgets["MaxEnergy (kWh,0 is unlimited)"].text()))
+            new_configs.append(self.string_to_16bit(input_widgets["MaxPower (kW,0 is unlimited)"].text()))
+            new_configs.append(self.string_to_16bit(input_widgets["MaxCurrent (A,0 is unlimited)"].text()))
+            new_configs.append(self.string_to_16bit(input_widgets["MaxDuration (minutes,0 is unlimited)"].text()))
+            new_configs.append(self.string_to_16bit(input_widgets["RfidEndian (0: little endian, 1: big endian)"].text()))
+            new_configs.append(self.string_to_16bit(input_widgets["ISO-15118 enable (0: Disable, 1: Enable)"].text()))
+            new_configs.append(self.string_to_16bit(input_widgets["ISO-15118 PnC enable (0: Disable, 1: Enable)"].text()))
+
+            # Call the Modbus function to write the configuration
+            write_success, response = self.modbus.writeConfig(new_configs)
+            if write_success:
+                self.message_section.append_message(f"{response}\n")
+            else:
+                QMessageBox.warning(self, 'Error', f"Failed to save configuration: {response}")
+                self.message_section.append_message(f"Error:{response}")
+
+        except ValueError as e:
+            QMessageBox.warning(self, 'Error', f"Invalid input: {e}")
+        except Exception as e:
+            QMessageBox.warning(self, 'Error', f"An error occurred: {e}")
     def on_login(self,ipaddr, pwd):
         isSuccess,msg = self.modbus.connect(ipaddr,pwd)
         if isSuccess:
@@ -95,11 +132,11 @@ class ModbusUI(QWidget):
             self.connector_timer.start(1000)  # Update every second
             
             # Read default configuration values
-            read_config_success, default_vals = self.modbus.readConfig()
+            read_config_success, config_values  = self.modbus.readConfig()
             if read_config_success:
-                pass
+                self.config_section.populate_configuration_fields(config_values)
             else:
-                QMessageBox.warning(self, 'Error', f"Failed to retrieve configuration: {default_vals}")
+                QMessageBox.warning(self, 'Error', f"Failed to retrieve configuration: {config_values}")
                 
         else:
             QMessageBox.warning(self, 'Error', msg)
@@ -117,12 +154,6 @@ class ModbusUI(QWidget):
         else:
             QMessageBox.warning(self, 'Error', 'reboot failed.')
             self.message_section.append_message(f"Error: {msg}")
-
-    def show_config_dialog(self):
-        if self.config_dialog:
-            self.config_dialog.show()
-        else:
-            QMessageBox.warning(self, 'Error', 'Configuration dialog is not available.')
 
 
     def on_start_charging(self,connector_id):
@@ -196,3 +227,5 @@ class ModbusUI(QWidget):
                     info_widgets[ui_field].setText(str(value)) # Convert value to string if necessary
         else:
             self.message_section.append_message(f"Error updating connector {connector_id}: {result}")
+    
+    
