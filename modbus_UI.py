@@ -12,6 +12,9 @@ class ModbusUI(QWidget):
 
         #init variables
         self.num_of_connector = 4
+        
+        #login- condition
+        #self.is_logged_in  = False
 
         # Initialize connector timers
         self.connector_timer = QTimer()
@@ -27,7 +30,7 @@ class ModbusUI(QWidget):
         '''
         ------------------Initialize each section----------------------------
         '''
-        login_section_callbacks = {"reboot":self.on_reboot,"login":self.on_login}
+        login_section_callbacks = {"reboot":self.on_reboot,"login":self.on_login,"disconnect":self.on_disconnect}
         connectors_callbacks = {"start":self.on_start_charging,"stop":self.on_stop_charging}
         config_callbacks = {"save":self.on_save_config}
 
@@ -123,6 +126,7 @@ class ModbusUI(QWidget):
     def on_login(self,ipaddr, pwd):
         isSuccess,msg = self.modbus.connect(ipaddr,pwd)
         if isSuccess:
+            #self.is_logged_in = True #????
             self.message_section.append_message(msg + '\n')
             modelName,serialNumber = self.modbus.readInfo()
             self.message_section.append_message(f"Model Number: {modelName}\nSerial Number: {serialNumber}")
@@ -146,7 +150,16 @@ class ModbusUI(QWidget):
         '''
         button on click disconnect 
         '''
-        pass
+        success,response = self.modbus.disconnect()
+        if success:
+            self.message_section.append_message(response + '\n')
+
+            if self.connector_timer.isActive():
+                self.connector_timer.stop()
+            print("success disconnection")
+        else:
+            QMessageBox.warning(self, 'Error', response)
+            self.message_section.append_message(f"Error: {response}")   
     def on_reboot(self):
         isSuccess,msg = self.modbus.BTN_reboot()
         if isSuccess:
