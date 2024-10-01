@@ -57,7 +57,7 @@ class pyZerovaChgrModbus:
         data = self.client.read_holding_registers(address=EVSE_REG_ADDR_SN, count=32)
         serialNumber = self.byte_swap_u16(data.registers).decode('ascii').rstrip('\x00')
 
-        return modelName, serialNumber
+        return 1, (modelName, serialNumber)
     
 
     def readConfig(self) -> list:

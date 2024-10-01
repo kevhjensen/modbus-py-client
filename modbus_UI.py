@@ -4,6 +4,7 @@ from GUI.login_section import LoginSection
 from GUI.charger_config import Configuration
 from GUI.msg_section import Message
 from GUI.connector_section import Connectors
+from GUI.device_info import DeviceInfo
 class ModbusUI(QWidget):
 
     def __init__(self,modbus):
@@ -25,7 +26,7 @@ class ModbusUI(QWidget):
     # initialize all UI    
     def init_ui(self):
         # Main layout
-        main_layout = QVBoxLayout()
+        main_layout = QHBoxLayout()
         
         '''
         ------------------Initialize each section----------------------------
@@ -38,28 +39,34 @@ class ModbusUI(QWidget):
         self.message_section = Message()
         self.config_section = Configuration(config_callbacks)
         self.connectors_section = Connectors(self.num_of_connector,connectors_callbacks)
-
+        self.device_info = DeviceInfo()
 
         '''
         ----------------------Manage the layout----------------------------
         '''
-        # # Create a splitter
-        # splitter = QSplitter(Qt.Orientation.Vertical)
-        # splitter.addWidget(message_section)
-        # splitter.addWidget(connectors_section)
 
         # Add sections to the main layout
         layout_A = QVBoxLayout()
         layout_A.addWidget(self.login_section)
         layout_A.addWidget(self.message_section)
         
-        layout_B = QHBoxLayout()
-        layout_B.addLayout(layout_A)
+        layout_B = QVBoxLayout()
         layout_B.addWidget(self.config_section)
+        layout_B.addWidget(self.device_info)   
+        
+        layout_C = QHBoxLayout()
+        layout_C.addLayout(layout_A)
+        layout_C.addLayout(layout_B)
+        layout_C_widget = QWidget()
+        layout_C_widget.setLayout(layout_C)
 
-        # main_layout.addWidget(splitter)
-        main_layout.addLayout(layout_B)
-        main_layout.addWidget(self.connectors_section)
+
+        # Create a splitter
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.addWidget(layout_C_widget)  # Add the widget holding layout_C
+        splitter.addWidget(self.connectors_section)
+
+        main_layout.addWidget(splitter)
     
         # Set layout for the main window
         self.setLayout(main_layout)
@@ -128,19 +135,35 @@ class ModbusUI(QWidget):
         if isSuccess:
             #self.is_logged_in = True #????
             self.message_section.append_message(msg + '\n')
-            modelName,serialNumber = self.modbus.readInfo()
-            self.message_section.append_message(f"Model Number: {modelName}\nSerial Number: {serialNumber}")
             print("success connection")
             
-            # Start the single timer to update connector info
-            self.connector_timer.start(1000)  # Update every second
+            # read device info
+            device_info_list=[]
+            success,response = self.modbus.readInfo()
+            if not success:
+                self.message_section.append_message(f"Error:{response}")
+                return
             
+            device_info_list.append(response[0])
+            device_info_list.append(response[1])
+            success, input_voltage_list= self.modbus.read_input_voltage()
+            if not success:
+                self.message_section.append_message(f"Error:{input_voltage_list}")
+                return
+            device_info_list.extend(input_voltage_list)
+            self.device_info.update_device_info(device_info_list)
             # Read default configuration values
             read_config_success, config_values  = self.modbus.readConfig()
             if read_config_success:
                 self.config_section.populate_configuration_fields(config_values)
             else:
                 QMessageBox.warning(self, 'Error', f"Failed to retrieve configuration: {config_values}")
+            
+
+            # Start the single timer to update connector info
+            self.connector_timer.start(1000)  # Update every second
+            
+            
                 
         else:
             QMessageBox.warning(self, 'Error', msg)
