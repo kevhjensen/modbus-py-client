@@ -29,7 +29,9 @@ class pyZerovaChgrModbus:
         try:
             self.client = ModbusTcpClient(ipAddr)
             self.client.connect()
-            self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=self.passwordHashAndModbusEncode(password))
+            response = self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=self.passwordHashAndModbusEncode(password))
+            if response.isError():
+                return 0, f"Error: {response}"
             #self.curConfig = self.readConfig()
             return 1, "connection success"
         except Exception as e:
@@ -40,6 +42,8 @@ class pyZerovaChgrModbus:
         Read charger's model name and serial number. LSB, MSW, ASCII encoding
         """
         data = self.client.read_holding_registers(address=EVSE_REG_ADDR_MODEL_NAME, count=32)
+        if data.isError():
+            return 0, f"Error: {data}"
         modelName = self.byte_swap_u16(data.registers).decode('ascii').rstrip('\x00')
         
         data = self.client.read_holding_registers(address=EVSE_REG_ADDR_SN, count=32)
@@ -58,10 +62,12 @@ class pyZerovaChgrModbus:
          "MaxCurrent" : 4,
          "MaxDuration" : 5,
          "RfidEndian" : 6} # 0 = little, 1 = big
+         "15118 enable": 7, boolean
+         "15118 pnc": 8, boolean
         """
         data = self.client.read_holding_registers(address=EVSE_REG_ADDR_AUTH_MODE, count=9)
         if data.isError():
-            return 0, "Error reading configuration"
+            return 0, f"Error: {data}"
         
         self.curConfig = data.registers
         
@@ -72,10 +78,14 @@ class pyZerovaChgrModbus:
         Sends new configuration to charger, then blips Save_Config coil high, writing the new config to NAND flash
         :param new_configuration: List of 7 booleans and numbers, that correspond to Auth, EvccidAuth...
         """
-        self.client.write_registers(address=EVSE_REG_ADDR_AUTH_MODE, values = newConfig)
-        self.client.write_coil(address=EVSE_COIL_ADDR_SAVE_CONFIG, value=1) #write config on holding register to NAND flash
-
-        return self.readConfig()
+        write_response = self.client.write_registers(address=EVSE_REG_ADDR_AUTH_MODE, values = newConfig)
+        if write_response.isError():
+            return 0, f"error: {write_response}"
+        save_response = self.client.write_coil(address=EVSE_COIL_ADDR_SAVE_CONFIG, value=1) #write config on holding register to NAND flash
+        if save_response.isError():
+            return 0, f"error:{save_response}"
+        
+        return 1,self.readConfig()
 
     def byte_swap_u16(self, data: list) -> bytearray:
         """
@@ -112,7 +122,7 @@ class pyZerovaChgrModbus:
         try:
             response = self.client.write_coil(address=EVSE_COIL_ADDR_REBOOT, value=1)
             if response.isError():
-                return 0, "Error sending reboot request"
+                return 0, f"error:{response}"
             return 1, "Reboot request sent successfully"
         except Exception as e:
             return 0, str(e)
@@ -127,7 +137,7 @@ class pyZerovaChgrModbus:
             coil_address = (connectorID * 1000) + CONNECTOR_COIL_ADDR_START
             response = self.client.write_coil(coil_address, True)  # Write '1' to start charging
             if response.isError():
-                return 0, "Error sending start charging request"
+                return 0, f"error:{response}"
             return 1, f"Start charging request sent to connector {connectorID}"
         except Exception as e:
             return 0, str(e)
@@ -142,7 +152,7 @@ class pyZerovaChgrModbus:
             coil_address = (connectorID * 1000) + CONNECTOR_COIL_ADDR_STOP
             response = self.client.write_coil(coil_address, True)  # Write '1' to stop charging
             if response.isError():
-                return 0, "Error sending stop charging request"
+                return 0, f"error:{response}"
             return 1, f"Stop charging request sent to connector {connectorID}"
         except Exception as e:
             return 0, str(e)
@@ -170,7 +180,7 @@ class pyZerovaChgrModbus:
             result = self.client.read_holding_registers(base_address + CONNECTOR_REG_ADDR_SYSTEM_STATE, 51)
 
             if result.isError():
-                return 0, "Error reading connector-info registers"
+                return 0, f"error:{result}"
 
             connector_info = result.registers
             connector_info_json = {}
@@ -216,7 +226,19 @@ class pyZerovaChgrModbus:
 
         except Exception as e:
             return 0, str(e)
-        
+
+    def read_input_voltage(self):
+        data = self.client.read_holding_registers(address=EVSE_REG_ADDR_AC_INPUT_VOLTAGE_L1, count=8)
+        if data.isError():
+            return 0, f"error:{data}"
+        input_voltage_list=[]
+        for i in range(0,7,2):
+            #combine 2 little endian
+            four_bytes_in_order = self.byte_swap_u16(data.registers[i:i+2])
+            output_float = struct.unpack('f', bytes(four_bytes_in_order))[0]
+            input_voltage_list.append(output_float)
+
+        return 1,input_voltage_list  
     
 # test = pyZerovaChgrModbus()
 # test.connect('192.168.10.155', 'hi')
@@ -233,3 +255,5 @@ class pyZerovaChgrModbus:
 # print(msg)
 # msg = test.BTN_reboot()
 # print(msg)
+
+# print(test.read_input_voltage())
