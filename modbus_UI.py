@@ -60,11 +60,15 @@ class ModbusUI(QWidget):
         layout_C_widget = QWidget()
         layout_C_widget.setLayout(layout_C)
 
-
-        # Create a splitter
+        # Create a scroll area for connectors_section
+        connectors_scroll_area = QScrollArea()
+        connectors_scroll_area.setWidgetResizable(True)  # Allow the widget to resize with the scroll area
+        connectors_scroll_area.setWidget(self.connectors_section)  # Set connectors_section as the widget in the scroll area
+        
+        # Create a splitter ??no help??
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(layout_C_widget)  # Add the widget holding layout_C
-        splitter.addWidget(self.connectors_section)
+        splitter.addWidget(connectors_scroll_area)
 
         main_layout.addWidget(splitter)
     
@@ -121,7 +125,7 @@ class ModbusUI(QWidget):
             # Call the Modbus function to write the configuration
             write_success, response = self.modbus.writeConfig(new_configs)
             if write_success:
-                self.message_section.append_message(f"{response}\n")
+                self.message_section.append_message(f"Success  {response}\n")
             else:
                 QMessageBox.warning(self, 'Error', f"Failed to save configuration: {response}")
                 self.message_section.append_message(f"Error:{response}")
