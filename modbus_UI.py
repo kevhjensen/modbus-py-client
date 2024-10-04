@@ -11,6 +11,10 @@ class ModbusUI(QWidget):
         super().__init__()
         self.modbus = modbus
 
+        #flags
+        self.isLoggedin = False
+        self.ischarging=[False,False,False,False]
+
         #init variables
         self.num_of_connector = 4
         
@@ -109,6 +113,8 @@ class ModbusUI(QWidget):
         '''
         each val of config is Big endian, MaxEnergy MaxPower MaxCurrent MaxDuration are uint16, other fields are boolean
         '''
+        if not self.isLoggedin:
+            return 
         new_configs= []
         # Retrieve values from input fields and convert them to the appropriate types
         try:
@@ -137,7 +143,7 @@ class ModbusUI(QWidget):
     def on_login(self,ipaddr, pwd):
         isSuccess,msg = self.modbus.connect(ipaddr,pwd)
         if isSuccess:
-            #self.is_logged_in = True #????
+            self.isLoggedin = True
             self.message_section.append_message(msg + '\n')
             print("success connection")
             
@@ -177,10 +183,12 @@ class ModbusUI(QWidget):
         '''
         button on click disconnect 
         '''
+        if not self.isLoggedin:
+            return 
         success,response = self.modbus.disconnect()
         if success:
             self.message_section.append_message(response + '\n')
-
+            self.isLoggedin = False
             if self.connector_timer.isActive():
                 self.connector_timer.stop()
             print("success disconnection")
@@ -188,28 +196,36 @@ class ModbusUI(QWidget):
             QMessageBox.warning(self, 'Error', response)
             self.message_section.append_message(f"Error: {response}")   
     def on_reboot(self):
+        if not self.isLoggedin:
+            return
         isSuccess,msg = self.modbus.BTN_reboot()
         if isSuccess:
             self.message_section.append_message(msg + '\n')
+            self.login_section.disconnect()
         else:
             QMessageBox.warning(self, 'Error', 'reboot failed.')
             self.message_section.append_message(f"Error: {msg}")
 
 
     def on_start_charging(self,connector_id):
+        if not self.isLoggedin or self.ischarging[connector_id]:
+            return
         backend_connector_id = connector_id+1
         success, message = self.modbus.BTN_start_charging(backend_connector_id)
         if success:
             self.message_section.append_message(f"Started charging on Connector {connector_id}")
-            
+            self.ischarging[connector_id] = True
         else:
             QMessageBox.warning(self, 'Error', f"Failed to start charging on Connector {connector_id}: {message}")
             self.message_section.append_message(f"Error: {message}")
     def on_stop_charging(self,connector_id):
+        if not self.isLoggedin or not self.ischarging[connector_id]:
+            return
         backend_connector_id = connector_id+1
         success, message = self.modbus.BTN_stop_charging(backend_connector_id)
         if success:
             self.message_section.append_message(f"Stopped charging on Connector {connector_id}")
+            self.ischarging[connector_id] = False
         else:
             QMessageBox.warning(self, 'Error', f"Failed to stop charging on Connector {connector_id}: {message}")  
             self.message_section.append_message(f"Error: {message}")
@@ -224,6 +240,8 @@ class ModbusUI(QWidget):
     #         timer.stop()
 
     def update_all_connectors_info(self):
+        if not self.isLoggedin:
+            return
         """Update information for all connectors."""
         info_widgets_list = self.connectors_section.get_connector_info_widgets_list()
         for connector_id in range(self.num_of_connector):
@@ -237,6 +255,8 @@ class ModbusUI(QWidget):
         :param connector_id: The index of the connector (0-based)
         :param connector_info: A dictionary containing the connector info
         """
+        if not self.isLoggedin:
+            return
         backend_connector_id = connector_id+1
         success, result = self.modbus.get_connector_info(backend_connector_id)
         if success:

@@ -47,6 +47,8 @@ class LoginSection(QGroupBox):
         self.disconnect_button.clicked.connect(self.disconnect)
     def login(self):
         ipaddr = self.input_ipaddr.text()
+        if not ipaddr:
+            return
         pwd = self.input_pwd.text()
         if self.callbacks["login"]:
             self.callbacks["login"](ipaddr, pwd)
