@@ -10,7 +10,6 @@ class DeviceInfo(QGroupBox):
         self.fields = self.items = [
             "Model Name", 
             "Serial Number", 
-            "Input Voltage",
             "AC Input Voltage L1", 
             "AC Input Voltage L2", 
             "AC Input Voltage L3", 
