@@ -185,7 +185,7 @@ class pyZerovaChgrModbus:
             base_address = connectorID * 1000
 
             # Read 50 registers starting from base address
-            result = self.client.read_holding_registers(base_address + CONNECTOR_REG_ADDR_SYSTEM_STATE, 60)
+            result = self.client.read_holding_registers(base_address + CONNECTOR_REG_ADDR_SYSTEM_STATE, 62)
 
             if result.isError():
                 return 0, f"error:{result}"
@@ -234,7 +234,7 @@ class pyZerovaChgrModbus:
                 session_idtag+=str(output_float)
             
             status_code = ""
-            for i in range(CONNECTOR_REG_ADDR_STATUS_CODE, 11,2):
+            for i in range(CONNECTOR_REG_ADDR_STATUS_CODE, CONNECTOR_REG_ADDR_STATUS_CODE+11,2):
                 four_bytes_in_order = self.byte_swap_u16(connector_info[i:i+2])
                 output_float = struct.unpack('f', bytes(four_bytes_in_order))[0]
                 status_code+=str(output_float)
