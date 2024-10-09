@@ -22,14 +22,16 @@ class Connectors(QGroupBox):
 
         self.setLayout(layout_QV)
     def init_connector_checkbox_section(self):
-        connector_checkbox_section = QHBoxLayout()
+        connector_checkbox_section = QVBoxLayout()
         for i in range(self.num_of_connector):
-            new_checkbox = QCheckBox("Connector "+ str(i), self)
+            one_unit_layout = QHBoxLayout()
+            new_checkbox = QCheckBox("Connector "+ str(i+1), self)
             new_start_button = QPushButton("Start Charging", self)
             new_stop_button = QPushButton("Stop Charging", self)
-            connector_checkbox_section.addWidget(new_checkbox)
-            connector_checkbox_section.addWidget(new_start_button)
-            connector_checkbox_section.addWidget(new_stop_button)
+            one_unit_layout.addWidget(new_checkbox)
+            one_unit_layout.addWidget(new_start_button)
+            one_unit_layout.addWidget(new_stop_button)
+            connector_checkbox_section.addLayout(one_unit_layout)
             self.connector_checbox_list.append((new_checkbox,new_start_button,new_stop_button))
         
         return connector_checkbox_section
@@ -38,7 +40,7 @@ class Connectors(QGroupBox):
     def init_connector_info_section(self):
         connector_info_section = QHBoxLayout()  # Create a HBox for all connectors' info sections
         for i in range(self.num_of_connector):
-            connector_name = "Connector " + str(i)
+            connector_name = "Connector " + str(i+1)
             scroll_area, info_widgets = self.init_single_connector_info_component(connector_name)
             scroll_area.hide()
             connector_info_section.addWidget(scroll_area)
@@ -119,4 +121,7 @@ class Connectors(QGroupBox):
     
     def get_connector_info_widgets_list(self):
         return self.connector_info_widgets_list
+    
+    def check_connector(self,connector_id):
+        self.connector_checbox_list[connector_id][0].setChecked(True)
 
