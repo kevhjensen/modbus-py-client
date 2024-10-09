@@ -227,20 +227,31 @@ class pyZerovaChgrModbus:
             for i, data in enumerate(connector_output_electrical_data):
                 connector_info_json[electrical_data_names[i]] = data
 
-            session_idtag = ""
-            for i in range(CONNECTOR_REG_ADDR_PRESENT_IDTAG, CONNECTOR_REG_ADDR_STATUS_CODE-CONNECTOR_REG_ADDR_PRESENT_IDTAG+1,2):
-                four_bytes_in_order = self.byte_swap_u16(connector_info[i:i+2])
-                output_float = struct.unpack('f', bytes(four_bytes_in_order))[0]
-                session_idtag+=str(output_float)
+            session_idtag_bytes = bytearray()
+            #print("outside loop")
+            for i in range(CONNECTOR_REG_ADDR_PRESENT_IDTAG, CONNECTOR_REG_ADDR_STATUS_CODE,2):
+                #print("inside loop")
+                raw = connector_info[i:i + 2]
+                four_bytes_in_order = self.byte_swap_u16(raw)
+                session_idtag_bytes.extend(four_bytes_in_order)
             
-            status_code = ""
+            status_code = []
+            
             for i in range(CONNECTOR_REG_ADDR_STATUS_CODE, CONNECTOR_REG_ADDR_STATUS_CODE+11,2):
+                
                 four_bytes_in_order = self.byte_swap_u16(connector_info[i:i+2])
-                output_float = struct.unpack('f', bytes(four_bytes_in_order))[0]
-                status_code+=str(output_float)
-            
-            connector_info_json["session_idtag"] = session_idtag
-            connector_info_json["status_code"] = status_code
+                status_value = struct.unpack('I', bytes(four_bytes_in_order))[0]  # Unpack as uint16
+                status_code.append(status_value)
+
+            session_id = session_idtag_bytes.decode('ascii').rstrip('\x00')
+            if session_id:
+                print("session_id:",session_id)
+            connector_info_json["session_idtag"] = session_id if session_id else "None" 
+            connector_info_json["status_code"] = ','.join(map(str,status_code))
+
+            #print()
+            #print(connector_info[CONNECTOR_REG_ADDR_PRESENT_IDTAG:CONNECTOR_REG_ADDR_PRESENT_IDTAG+11])
+            #print(connector_info[CONNECTOR_REG_ADDR_STATUS_CODE:CONNECTOR_REG_ADDR_STATUS_CODE+11])
             return 1,connector_info_json
 
         except Exception as e:

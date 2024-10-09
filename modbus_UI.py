@@ -69,19 +69,22 @@ class ModbusUI(QWidget):
         connectors_scroll_area.setWidgetResizable(True)  # Allow the widget to resize with the scroll area
         connectors_scroll_area.setWidget(self.connectors_section)  # Set connectors_section as the widget in the scroll area
         
-        # Create a splitter ??no help??
+        # Create a splitter 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(layout_C_widget)  # Add the widget holding layout_C
         splitter.addWidget(connectors_scroll_area)
-
+        splitter.setSizes([200, 800])
         main_layout.addWidget(splitter)
     
         # Set layout for the main window
         self.setLayout(main_layout)
 
+        #display first connector
+        self.connectors_section.check_connector(0)
+
         # Window settings
         self.setWindowTitle('Modbus TCP Client V1.2')
-        self.setGeometry(300, 300, 600, 600)
+        self.setGeometry(300, 300, 1000, 600)
         self.show()
         
     
@@ -131,7 +134,7 @@ class ModbusUI(QWidget):
             # Call the Modbus function to write the configuration
             write_success, response = self.modbus.writeConfig(new_configs)
             if write_success:
-                self.message_section.append_message(f"Success  {response}\n")
+                self.message_section.append_message(f"Success  {response}")
             else:
                 QMessageBox.warning(self, 'Error', f"Failed to save configuration: {response}")
                 self.message_section.append_message(f"Error:{response}")
@@ -144,7 +147,7 @@ class ModbusUI(QWidget):
         isSuccess,msg = self.modbus.connect(ipaddr,pwd)
         if isSuccess:
             self.isLoggedin = True
-            self.message_section.append_message(msg + '\n')
+            self.message_section.append_message(msg)
             print("success connection")
             
             # read device info
@@ -187,7 +190,7 @@ class ModbusUI(QWidget):
             return 
         success,response = self.modbus.disconnect()
         if success:
-            self.message_section.append_message(response + '\n')
+            self.message_section.append_message(response)
             self.isLoggedin = False
             if self.connector_timer.isActive():
                 self.connector_timer.stop()
@@ -200,7 +203,7 @@ class ModbusUI(QWidget):
             return
         isSuccess,msg = self.modbus.BTN_reboot()
         if isSuccess:
-            self.message_section.append_message(msg + '\n')
+            self.message_section.append_message(msg)
             self.login_section.disconnect()
         else:
             QMessageBox.warning(self, 'Error', 'reboot failed.')
