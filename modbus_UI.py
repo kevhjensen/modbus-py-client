@@ -211,9 +211,11 @@ class ModbusUI(QWidget):
 
 
     def on_start_charging(self,connector_id):
-        if not self.isLoggedin or self.ischarging[connector_id]:
-            return
+        # if not self.isLoggedin or self.ischarging[connector_id]:
+        #     return
         backend_connector_id = connector_id+1
+        # for i in range(100):
+        #     success, message = self.modbus.BTN_start_charging(backend_connector_id)
         success, message = self.modbus.BTN_start_charging(backend_connector_id)
         if success:
             self.message_section.append_message(f"Started charging on Connector {connector_id}")
@@ -222,8 +224,8 @@ class ModbusUI(QWidget):
             QMessageBox.warning(self, 'Error', f"Failed to start charging on Connector {connector_id}: {message}")
             self.message_section.append_message(f"Error: {message}")
     def on_stop_charging(self,connector_id):
-        if not self.isLoggedin or not self.ischarging[connector_id]:
-            return
+        # if not self.isLoggedin or not self.ischarging[connector_id]:
+        #     return
         backend_connector_id = connector_id+1
         success, message = self.modbus.BTN_stop_charging(backend_connector_id)
         if success:

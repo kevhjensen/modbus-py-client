@@ -3,7 +3,6 @@ from hashlib import sha256
 from pymodbus.client import ModbusTcpClient
 import struct
 from constants import *
-
 #isConnected = False
 isTLS = False
 isCert = False
@@ -13,8 +12,12 @@ TLS_Cert = ""
 TLS_Key = ""
 TLS_Ca = ""
 
-
-
+hardcode_empty_pwd_reg = [13157, 12386, 13411, 12852, 14393, 25446, 
+                          25393, 13361, 24889, 25190, 13414, 14435, 
+                          14649, 26166, 14690, 13362, 14130, 25953, 
+                          12596, 13413, 13366, 25145, 13113, 25396, 
+                          13409, 13625, 14649, 25137, 14391, 12853, 
+                          14434, 13621]
 
 
 class pyZerovaChgrModbus:
@@ -30,6 +33,7 @@ class pyZerovaChgrModbus:
             self.client = ModbusTcpClient(ipAddr)
             self.client.connect()
             response = self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=self.passwordHashAndModbusEncode(password))
+            #response = self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=hardcode_empty_pwd_reg)
             if response.isError():
                 return 0, f"Error: {response}"
             return 1, "connection success"
@@ -45,18 +49,18 @@ class pyZerovaChgrModbus:
             return 1, "Disconnection success"
         except Exception as e:
             return 0,str(e)
+    
     def readInfo(self) -> dict:
         """
         Read charger's model name and serial number. LSB, MSW, ASCII encoding
         """
-        data = self.client.read_holding_registers(address=EVSE_REG_ADDR_MODEL_NAME, count=32)
+        data = self.client.read_holding_registers(address=EVSE_REG_ADDR_MODEL_NAME, count=32,slave=1)
         if data.isError():
             return 0, f"Error: {data}"
         modelName = self.byte_swap_u16(data.registers).decode('ascii').rstrip('\x00')
         
-        data = self.client.read_holding_registers(address=EVSE_REG_ADDR_SN, count=32)
+        data = self.client.read_holding_registers(address=EVSE_REG_ADDR_SN, count=32,slave=1)
         serialNumber = self.byte_swap_u16(data.registers).decode('ascii').rstrip('\x00')
-
         return 1, (modelName, serialNumber)
     
 
@@ -81,7 +85,7 @@ class pyZerovaChgrModbus:
         
         return 1,data.registers
     
-    def writeConfig(self, newConfig) -> list:
+    def writeConfig(self, newConfig:list) -> list:
         """
         Sends new configuration to charger, then blips Save_Config coil high, writing the new config to NAND flash
         :param new_configuration: List of 7 booleans and numbers, that correspond to Auth, EvccidAuth...
@@ -118,9 +122,9 @@ class pyZerovaChgrModbus:
         # ASCII encode hexdecimal chars into bytes (64 byte array)
 
         modbusRegisters = []
-        for i in range(32):
+        for i in range(0,64,2):
             MSB, LSB = hashed_HexStringed_ASCII[i], hashed_HexStringed_ASCII[i + 1]
-            register = (LSB << 8) | MSB 
+            register = (LSB << 8) | MSB
             modbusRegisters.append(register)
             # 2 bytes in each register using little endianness
 
@@ -235,19 +239,27 @@ class pyZerovaChgrModbus:
                 four_bytes_in_order = self.byte_swap_u16(raw)
                 session_idtag_bytes.extend(four_bytes_in_order)
             
-            status_code = []
+            session_id = session_idtag_bytes.decode('ascii').rstrip('\x00')
+            # if session_id:
+            #     print("session_id:",session_id)
+
             
+            #status_code_list = []
+            status_code_list = bytearray()
             for i in range(CONNECTOR_REG_ADDR_STATUS_CODE, CONNECTOR_REG_ADDR_STATUS_CODE+11,2):
                 
                 four_bytes_in_order = self.byte_swap_u16(connector_info[i:i+2])
-                status_value = struct.unpack('I', bytes(four_bytes_in_order))[0]  # Unpack as uint16
-                status_code.append(status_value)
-
-            session_id = session_idtag_bytes.decode('ascii').rstrip('\x00')
-            if session_id:
-                print("session_id:",session_id)
+                #status_value = struct.unpack('I', bytes(four_bytes_in_order))[0]  # Unpack as uint16
+                #status_code.append(four_bytes_in_order)
+                status_code_list.extend(four_bytes_in_order)
+            
+            status_code = status_code_list.decode('ascii').rstrip('\x00')
+            # if status_code:
+            #     print("status_code:",status_code)
+            
             connector_info_json["session_idtag"] = session_id if session_id else "None" 
-            connector_info_json["status_code"] = ','.join(map(str,status_code))
+            connector_info_json["status_code"] = status_code if status_code else "None"
+            #connector_info_json["status_code"] = ','.join(map(str,status_code))
 
             #print()
             #print(connector_info[CONNECTOR_REG_ADDR_PRESENT_IDTAG:CONNECTOR_REG_ADDR_PRESENT_IDTAG+11])
@@ -270,7 +282,7 @@ class pyZerovaChgrModbus:
         return 1,input_voltage_list  
     
 # test = pyZerovaChgrModbus()
-# test.connect('192.168.10.155', 'hi')
+# test.connect('192.168.10.200', "")
 # print(test.readInfo())
 # test.readConfig()
 # test.writeConfig([1, 0, 0, 0, 0])
