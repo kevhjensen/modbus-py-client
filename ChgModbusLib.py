@@ -233,7 +233,7 @@ class pyZerovaChgrModbus:
 
             session_idtag_bytes = bytearray()
             #print("outside loop")
-            for i in range(CONNECTOR_REG_ADDR_PRESENT_IDTAG, CONNECTOR_REG_ADDR_STATUS_CODE,2):
+            for i in range(CONNECTOR_REG_ADDR_PRESENT_IDTAG, CONNECTOR_REG_ADDR_STATUS_CODE-1,2):
                 #print("inside loop")
                 raw = connector_info[i:i + 2]
                 four_bytes_in_order = self.byte_swap_u16(raw)
