@@ -25,17 +25,18 @@ class pyZerovaChgrModbus:
         self.curConfig = []
         pass
     
-    def connect(self, ipAddr, password) -> tuple:
+    def connect(self, ipAddr, password=None) -> tuple:
         """
         Connects to charger with given IP over port 502. Unlocks charger with password (hashed and encoded)
         """
         try:
             self.client = ModbusTcpClient(ipAddr)
             self.client.connect()
-            response = self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=self.passwordHashAndModbusEncode(password))
-            #response = self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=hardcode_empty_pwd_reg)
-            if response.isError():
-                return 0, f"Error: {response}"
+            if password:
+                response = self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=self.passwordHashAndModbusEncode(password))
+                #response = self.client.write_registers(address=EVSE_REG_ADDR_LOGIN_PASSWORD, values=hardcode_empty_pwd_reg)
+                if response.isError():
+                    return 0, f"Error: {response}"
             return 1, "connection success"
         except Exception as e:
             return 0,str(e)
@@ -85,7 +86,7 @@ class pyZerovaChgrModbus:
         
         return 1,data.registers
     
-    def writeConfig(self, newConfig:list) -> list:
+    def writeConfig(self, newConfig:list, read:bool = False) -> list:
         """
         Sends new configuration to charger, then blips Save_Config coil high, writing the new config to NAND flash
         :param new_configuration: List of 7 booleans and numbers, that correspond to Auth, EvccidAuth...
@@ -96,8 +97,10 @@ class pyZerovaChgrModbus:
         save_response = self.client.write_coil(address=EVSE_COIL_ADDR_SAVE_CONFIG, value=1) #write config on holding register to NAND flash
         if save_response.isError():
             return 0, f"error:{save_response}"
-        
-        return 1,self.readConfig()
+        newConfig = "No read config"
+        if read == True:
+            newConfig = self.readConfig()[1]      
+        return 1, newConfig
 
     def byte_swap_u16(self, data: list) -> bytearray:
         """
