@@ -195,6 +195,8 @@ class pyZerovaChgrModbus:
                 return 0, f"error:{result}"
 
             connector_info = result.registers
+            #print("c info:",connector_info)
+            #print("c info len:", len(connector_info))
             connector_info_json = {}
 
             # Extract values from the read data
@@ -239,9 +241,11 @@ class pyZerovaChgrModbus:
                 four_bytes_in_order = self.byte_swap_u16(raw)
                 session_idtag_bytes.extend(four_bytes_in_order)
             
-            session_id = session_idtag_bytes.decode('ascii').rstrip('\x00')
-            # if session_id:
-            #     print("session_id:",session_id)
+            
+            #session_id = session_idtag_bytes.decode('ascii').rstrip('\x00')
+            session_id = "None"
+            if session_id:
+                print("session_id:",session_id)
 
             
             #status_code_list = []
@@ -253,9 +257,10 @@ class pyZerovaChgrModbus:
                 #status_code.append(four_bytes_in_order)
                 status_code_list.extend(four_bytes_in_order)
             
-            status_code = status_code_list.decode('ascii').rstrip('\x00')
-            # if status_code:
-            #     print("status_code:",status_code)
+            #status_code = status_code_list.decode('ascii').rstrip('\x00')
+            status_code = "None"
+            if status_code:
+                print("status_code:",status_code)
             
             connector_info_json["session_idtag"] = session_id if session_id else "None" 
             connector_info_json["status_code"] = status_code if status_code else "None"
